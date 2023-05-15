@@ -1,0 +1,7 @@
+__pycache__/
+pointing_clips/*
+!pointing_clips/.gitkeep
+number.txt
+session.txt
+*.pyc
+.env
