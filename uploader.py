@@ -1,3 +1,6 @@
+# See https://github.com/546200350/TikTokUploder
+# Slightly modified (mainly to remove additional logging)
+
 import requests, json, time
 from util import assertSuccess,getTagsExtra,uploadToTikTok, getCreationId
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'

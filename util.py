@@ -1,3 +1,6 @@
+# See https://github.com/546200350/TikTokUploder
+# Slightly modified (mainly to remove additional logging)
+
 import requests
 import datetime
 import hashlib
