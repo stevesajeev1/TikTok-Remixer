@@ -2,10 +2,11 @@
 # Slightly modified (mainly to remove additional logging)
 
 import requests, json, time
-from util import assertSuccess,getTagsExtra,uploadToTikTok, getCreationId
+import subprocess, re
+from util import assertSuccess,getTagsExtra,uploadToTikTok,getCreationId
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
 
-def uploadVideo(session_id, video, title, tags, users):
+def uploadVideo(session_id, video, title, tags, users = [], url_prefix = "us"):
 	session = requests.Session()
 
 	session.cookies.set("sessionid", session_id, domain=".tiktok.com")
@@ -13,12 +14,12 @@ def uploadVideo(session_id, video, title, tags, users):
 	headers = {
 		'User-Agent': UA
 	}
-	url = "https://us.tiktok.com/upload/"
+	url = f"https://{url_prefix}.tiktok.com/upload/"
 	r = session.get(url,headers = headers)
 	if not assertSuccess(url, r):
 		return False
 	creationid = getCreationId()
-	url = f"https://us.tiktok.com/api/v1/web/project/create/?creation_id={creationid}&type=1&aid=1988"
+	url = f"https://{url_prefix}.tiktok.com/api/v1/web/project/create/?creation_id={creationid}&type=1&aid=1988"
 	headers = {
 		"X-Secsdk-Csrf-Request":"1",
 		"X-Secsdk-Csrf-Version":"1.2.8"
@@ -26,11 +27,15 @@ def uploadVideo(session_id, video, title, tags, users):
 	r = session.post(url, headers=headers)
 	if not assertSuccess(url, r):
 		return False
-	tempInfo = r.json()['project']
+	try:
+		tempInfo = r.json()['project']
+	except KeyError:
+		print(f"[-] An error occured while reaching {url}")
+		print("[-] Please try to change the --url_server argument to the adapted prefix for your account")
 	creationID = tempInfo["creationID"]
 	projectID = tempInfo["project_id"]
 	# 获取账号信息
-	url = "https://us.tiktok.com/passport/web/account/info/"
+	url = f"https://{url_prefix}.tiktok.com/passport/web/account/info/"
 	r = session.get(url)
 	if not assertSuccess(url, r):
 		return False
@@ -39,11 +44,16 @@ def uploadVideo(session_id, video, title, tags, users):
 	if not video_id:
 		return False
 	time.sleep(2)
-	result = getTagsExtra(title,tags,users,session);
+	result = getTagsExtra(title,tags,users,session,url_prefix)
 	time.sleep(3)
 	title = result[0]
 	text_extra = result[1]
-	url = "https://us.tiktok.com/api/v1/web/project/post/?aid=1988"
+	postQuery = {
+		'app_name': 'tiktok_web',
+		'channel': 'tiktok_web',
+		'device_platform': 'web',
+		'aid': 1988
+	}
 	data = {
 		"upload_param": {
 			"video_param": {
@@ -65,42 +75,31 @@ def uploadVideo(session_id, video, title, tags, users):
 		"project_id": projectID,
 		"draft": "",
 		"single_upload_param": [],
-		"video_id": video_id
+		"video_id": video_id,
+		"creation_id": creationID
 	}
-	headers = {
-		# "X-Secsdk-Csrf-Token": x_csrf_token,
-		'Host': 'us.tiktok.com',
-		'authority': 'tiktok.com',
-		'pragma': 'no-cache',
-		'cache-control': 'no-cache',
-		'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-		'accept': 'application/json, text/plain, */*',
-		'content-type': 'application/json',
-		'sec-ch-ua-mobile': '?0',
-		'user-agent': UA,
-		'sec-ch-ua-platform': '"macOS"',
-		'origin': 'https://www.tiktok.com',
-		'sec-fetch-site': 'same-site',
-		'sec-fetch-mode': 'cors',
-		'sec-fetch-dest': 'empty',
-		'referer': 'https://www.tiktok.com/',    # network find vn tiktok, referer: https://us.tiktok.com/creator
-		'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8'
-	}
-	r = session.post(url, data=json.dumps(data), headers=headers)
-	if not assertSuccess(url, r):
-		raise Exception("Response error")
-	return True
+	command = ['node', './js/webssdk.js', json.dumps(data)]
 
-if __name__ == "__main__":
-	import argparse
-	parser = argparse.ArgumentParser()
-	parser.add_argument("-i", "--session_id", help="Tiktok sessionid cookie", required=True)
-	parser.add_argument("-p", "--path", help="Path to video file", required=True)
-	parser.add_argument("-t", "--title", help="Title of the video", required=True)
-	parser.add_argument("--tags", nargs='*', default=[], help="List of hashtags for the video")
-	parser.add_argument("--users", nargs='*', default=[], help="List of mentioned users for the video")
-	parser.add_argument("-s", "--schedule_time", type=int, default=0, help="schedule timestamp for video upload")
-	args = parser.parse_args()
-    # python3 ./uploader.py -i 'your sessionid' -p ./download/test.mp4 -t  测试上传
-	# uploadVideo('your sessionid', './download/test.mp4', '就问你批不批', ['热门'],[])
-	uploadVideo(args.session_id, args.path, args.title, args.tags, args.users)
+	response = subprocess.check_output(command, encoding='utf-8').strip()[2:]
+
+	response = response.replace("'", "\"")
+	response = re.sub(r"(\w+):\s", r'"\1": ', response)
+
+	response = json.loads(response)
+
+	url = response['url']
+	ua = response['ua']
+
+	reqData = json.dumps(data, separators=(',', ':'), ensure_ascii=False);
+	headers = {
+		'Host': f'{url_prefix}.tiktok.com',
+		'content-type': 'application/json',
+		'user-agent': ua,
+		'origin': 'https://www.tiktok.com',
+		'referer': 'https://www.tiktok.com/'
+	}
+	r = session.post(url, data=reqData.encode('utf-8'), headers=headers)
+	if not assertSuccess(url, r) or r.json()["status_code"] != 0:
+		return False
+
+	return True

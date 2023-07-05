@@ -4,6 +4,7 @@ ffmpeg==1.4
 ffmpeg_python==0.2.0
 nest_asyncio==1.5.6
 playwright==1.32.1
+python-dotenv==1.0.0
 requests==2.28.1
 schedule==1.1.0
 tiktokapipy==0.1.11

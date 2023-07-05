@@ -1,7 +1,8 @@
-__pycache__/
-pointing_clips/*
+__pycache__
+pointing_clips
 !pointing_clips/.gitkeep
 number.txt
 session.txt
 *.pyc
 .env
+node_modules
