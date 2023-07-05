@@ -239,6 +239,7 @@ class MyBot(interactions.Client):
         scopes=[guild_id]
     )
     async def current(self, ctx: interactions.SlashContext):
+        session_id = os.environ['SESSION-ID']
         await ctx.send(f"Current session_id is : `{session_id}`")
         print(f"{bcolors.OKBLUE}Received request to print current session-id{bcolors.ENDC}")
 
