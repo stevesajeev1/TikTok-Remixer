@@ -21,7 +21,7 @@ dotenv.load_dotenv(dotenv_file)
 
 session_id = os.environ['SESSION-ID']
 target_user = os.environ['TARGET-USER']
-user_id = os.environ['USER-ID']
+user_id = os.environ['NOTIF-USER']
 bot_token = os.environ['BOT-TOKEN']
 webhook_url = os.environ['WEBHOOK-URL']
 guild_id = int(os.environ['GUILD-ID'])
