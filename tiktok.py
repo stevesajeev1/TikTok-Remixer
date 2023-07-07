@@ -25,7 +25,6 @@ user_id = os.environ['NOTIF-USER']
 bot_token = os.environ['BOT-TOKEN']
 webhook_url = os.environ['WEBHOOK-URL']
 guild_id = int(os.environ['GUILD-ID'])
-number = int(os.environ['NUMBER'])
 
 # Helper class to allow for pretty output printing
 class bcolors:
@@ -159,6 +158,7 @@ async def post(caption, filename):
 async def run():
     now = datetime.datetime.now()
     print(f"{bcolors.OKBLUE}Checking for new videos... Time:{bcolors.ENDC} {now}")
+    number = int(os.environ['NUMBER'])
     prevVideos = number
     async with AsyncTikTokAPI(emulate_mobile=True, navigation_retries=5, navigation_timeout=60000) as api:
         user = await api.user(target_user)
