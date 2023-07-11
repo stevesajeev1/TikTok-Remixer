@@ -19,7 +19,6 @@ nest_asyncio.apply()
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 
-session_id = os.environ['SESSION-ID']
 target_user = os.environ['TARGET-USER']
 user_id = os.environ['NOTIF-USER']
 bot_token = os.environ['BOT-TOKEN']
@@ -133,6 +132,9 @@ async def post(caption, filename):
     tags = caption.split()
     tags = [tag[1:] for tag in tags if tag.startswith("#")]
     # Attempt to upload with sesison-id
+    del os.environ['SESSION-ID']
+    dotenv.load_dotenv(dotenv_file)
+    session_id = os.environ['SESSION-ID']
     print(f"Trying to upload with session id: {session_id}")
     success = False
     try:
@@ -158,6 +160,8 @@ async def post(caption, filename):
 async def run():
     now = datetime.datetime.now()
     print(f"{bcolors.OKBLUE}Checking for new videos... Time:{bcolors.ENDC} {now}")
+    del os.environ['NUMBER']
+    dotenv.load_dotenv(dotenv_file)
     number = int(os.environ['NUMBER'])
     prevVideos = number
     async with AsyncTikTokAPI(emulate_mobile=True, navigation_retries=5, navigation_timeout=60000) as api:
@@ -239,6 +243,8 @@ class MyBot(interactions.Client):
         scopes=[guild_id]
     )
     async def current(self, ctx: interactions.SlashContext):
+        del os.environ['SESSION-ID']
+        dotenv.load_dotenv(dotenv_file)
         session_id = os.environ['SESSION-ID']
         await ctx.send(f"Current session_id is : `{session_id}`")
         print(f"{bcolors.OKBLUE}Received request to print current session-id{bcolors.ENDC}")
