@@ -13,4 +13,4 @@ To get it, log into your TikTok account and once you are on the page, press the 
 
 **Note that your TikTok sessionid cookie needs to be updated every 2 months.**
 
-Notifications of the new video and of changes to session-id/errors are logged using Discord bots/webhooks.
+Notifications of the new video and of changes to session-id/errors are logged using Discord webhooks. The Discord bot is used in order to allow for easy updating of the sessionid through a slash command.
