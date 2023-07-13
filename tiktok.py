@@ -8,22 +8,23 @@ import interactions
 import time, datetime, schedule
 import os, glob, traceback, warnings
 import random
-import dotenv
+import json
 
 # Don't clog standard output with warnings
 warnings.filterwarnings("ignore")
 # Allow for the nesting of the Discord bot Async loop as well as the TikTok video Async loop
 nest_asyncio.apply()
 
-# Load .env variables
-dotenv_file = dotenv.find_dotenv()
-dotenv.load_dotenv(dotenv_file)
+# Load secret variables
+f = open('secret.json')
+secrets = json.load(f)
+f.close()
 
-target_user = os.environ['TARGET-USER']
-user_id = os.environ['NOTIF-USER']
-bot_token = os.environ['BOT-TOKEN']
-webhook_url = os.environ['WEBHOOK-URL']
-guild_id = int(os.environ['GUILD-ID'])
+target_user = secrets['TARGET-USER']
+user_id = secrets['NOTIF-USER']
+bot_token = secrets['BOT-TOKEN']
+webhook_url = secrets['WEBHOOK-URL']
+guild_id = int(secrets['GUILD-ID'])
 
 # Helper class to allow for pretty output printing
 class bcolors:
@@ -131,10 +132,8 @@ async def post(caption, filename):
     title = f"{caption[:caption.index('#')]}"
     tags = caption.split()
     tags = [tag[1:] for tag in tags if tag.startswith("#")]
-    # Attempt to upload with sesison-id
-    del os.environ['SESSION-ID']
-    dotenv.load_dotenv(dotenv_file)
-    session_id = os.environ['SESSION-ID']
+    # Attempt to upload with session-id
+    session_id = secrets['SESSION-ID']
     print(f"Trying to upload with session id: {session_id}")
     success = False
     try:
@@ -160,9 +159,7 @@ async def post(caption, filename):
 async def run():
     now = datetime.datetime.now()
     print(f"{bcolors.OKBLUE}Checking for new videos... Time:{bcolors.ENDC} {now}")
-    del os.environ['NUMBER']
-    dotenv.load_dotenv(dotenv_file)
-    number = int(os.environ['NUMBER'])
+    number = int(secrets['NUMBER'])
     prevVideos = number
     async with AsyncTikTokAPI(emulate_mobile=True, navigation_retries=5, navigation_timeout=60000) as api:
         user = await api.user(target_user)
@@ -182,7 +179,9 @@ async def run():
                 if video.image_post:
                     print(f"{bcolors.WARNING}New video is a slideshow, not creating another video!{bcolors.ENDC}")
                     # Update number of videos handled
-                    dotenv.set_key(dotenv_file, "NUMBER", str(prevVideos + i + 1))
+                    secrets['NUMBER'] = str(prevVideos + i + 1)
+                    with open('secret.json', 'w', encoding='utf-8') as f:
+                        json.dump(secrets, f, ensure_ascii=False, indent=4)
                     continue
                 # Save video
                 print(f"{bcolors.WARNING}Saving video...{bcolors.ENDC}")
@@ -210,10 +209,14 @@ async def run():
                     os.remove(f)
                 print(f"{bcolors.OKGREEN}Finished cleanup!{bcolors.ENDC}")
                 # Update current number of files handled
-                dotenv.set_key(dotenv_file, "NUMBER", str(prevVideos + i + 1))
+                secrets['NUMBER'] = str(prevVideos + i + 1)
+                with open('secret.json', 'w', encoding='utf-8') as f:
+                    json.dump(secrets, f, ensure_ascii=False, indent=4)
         elif prevVideos > numVideos:
             # User has deleted some videos, so update count to match
-            dotenv.set_key(dotenv_file, "NUMBER", str(numVideos))
+            secrets['NUMBER'] = str(numVideos)
+            with open('secret.json', 'w', encoding='utf-8') as f:
+                json.dump(secrets, f, ensure_ascii=False, indent=4)
             print(f"{bcolors.HEADER}No new video{bcolors.ENDC}")
         else:
             print(f"{bcolors.HEADER}No new video{bcolors.ENDC}")
@@ -234,7 +237,9 @@ class MyBot(interactions.Client):
         ]
     )
     async def update(self, ctx: interactions.SlashContext, session_id):
-        dotenv.set_key(dotenv_file, "SESSION-ID", session_id)
+        secrets['SESSION-ID'] = session_id
+        with open('secret.json', 'w', encoding='utf-8') as f:
+            json.dump(secrets, f, ensure_ascii=False, indent=4)
         await ctx.send(f"Updated session_id to `{session_id}`")
         print(f"{bcolors.OKBLUE}Updated session_id to {bcolors.ENDC}{session_id}")
     @interactions.slash_command(
@@ -243,9 +248,7 @@ class MyBot(interactions.Client):
         scopes=[guild_id]
     )
     async def current(self, ctx: interactions.SlashContext):
-        del os.environ['SESSION-ID']
-        dotenv.load_dotenv(dotenv_file)
-        session_id = os.environ['SESSION-ID']
+        session_id = secrets['SESSION-ID']
         await ctx.send(f"Current session_id is : `{session_id}`")
         print(f"{bcolors.OKBLUE}Received request to print current session-id{bcolors.ENDC}")
 
